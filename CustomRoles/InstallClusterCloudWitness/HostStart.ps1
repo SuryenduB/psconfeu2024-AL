@@ -3,11 +3,11 @@ param(
     [string]
     $ComputerName,
 
-    [Parameter(Mandatory)]
+    [Parameter(Mandatory=$false)]
     [string]
     $StorageAccountName,
 
-    [Parameter(Mandatory)]
+    [Parameter(Mandatory=$false)]
     [string]
     $AccessKey
 )
@@ -15,5 +15,6 @@ param(
 Import-Lab -Name $data.Name -NoValidation -NoDisplay
 
 Invoke-LabCommand -ComputerName $ComputerName -ActivityName 'Configure Cloud Witness Cluster Quorum' -ScriptBlock {
-    Set-ClusterQuorum -CloudWitness -AccountName $StorageAccountName -AccessKey $AccessKey
+    #Set-ClusterQuorum -CloudWitness -AccountName $StorageAccountName -AccessKey $AccessKey
+    Set-ClusterQuorum -NodeMajority
 } -PassThru -Variable (Get-Variable -Name StorageAccountName), (Get-Variable -Name AccessKey)

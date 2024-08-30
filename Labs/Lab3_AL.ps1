@@ -12,7 +12,7 @@
     Both VMs will be installed with SQL Server 2022 Enterpise Edition with AL.
     A SQL Server AG (Always-On Availibility Group) will be deployed with AL.
 
-    The full sql server feature command line documentation can be found here:
+    The full sql server feature command line documentation can be found herC:
     https://learn.microsoft.com/en-us/sql/database-engine/install-windows/install-sql-server-from-the-command-prompt?view=sql-server-ver16#Feature
 .EXAMPLE
     Test-MyTestFunction -Verbose
@@ -20,18 +20,18 @@
 #>
 
 $labName = 'LAB3'
-$SecretFile = Import-PowerShellDataFile -Path E:\GIT\psconfeu2024-AL\.secrets.psd1
+#$SecretFile = Import-PowerShellDataFile -Path C:\GIT\psconfeu2024-AL\.secrets.psd1
 
 New-LabDefinition -Name $labName -DefaultVirtualizationEngine HyperV
 
-Add-LabIsoImageDefinition -Name SQLServer2022 -Path $labSources\ISOs\enu_sql_server_2022_enterprise_edition_x64_dvd_aa36de9e.iso
+Add-LabIsoImageDefinition -Name SQLServer2022 -Path $labSources\ISOs\SQLServer2022-x64-ENU-Dev.iso
 
 $PSDefaultParameterValues = @{
     'Add-LabMachineDefinition:Network'         = 'NATSwitchLab3'
     'Add-LabMachineDefinition:ToolsPath'       = "$labSources\Tools"
-    'Add-LabMachineDefinition:OperatingSystem' = 'Windows Server 2022 Datacenter (Desktop Experience)'
+    'Add-LabMachineDefinition:OperatingSystem' = 'Windows Server 2025 Datacenter (Desktop Experience)'
     'Add-LabMachineDefinition:Memory'          = 2GB
-    'Add-LabMachineDefinition:DomainName'      = 'contoso.com'
+    'Add-LabMachineDefinition:DomainName'      = 'swisskrono.com'
 }
 
 $VolumeDefinitions = New-Object 'System.Collections.Generic.List[System.Object]'
@@ -136,14 +136,15 @@ $splat = @{
     Ipv4DNSServers = '192.168.3.10', '168.63.129.16'
 }
 $netAdapter = New-LabNetworkAdapterDefinition @splat
-
+Add-LabDiskDefinition -Name LAB3DC -DiskSizeInGb 100
 $splat = @{
     Name            = 'LAB3DC'
-    OperatingSystem = 'Windows Server 2022 Datacenter'
+    OperatingSystem = 'Windows Server 2025 Datacenter'
     Processors      = 1
     Roles           = 'RootDC'
     NetworkAdapter  = $netAdapter
     Memory          = 2GB
+    DiskName        = 'LAB3DC'
 }
 Add-LabMachineDefinition @splat
 
@@ -155,9 +156,9 @@ $clusterRole = Get-LabMachineRoleDefinition -Role FailoverNode -Properties @{
 }
 $SqlRole = Get-LabMachineRoleDefinition -Role SQLServer2022 -Properties @{
     Features              = 'SQLEngine,Tools'
-    SQLSvcAccount         = 'contoso\sqlsvc'
+    SQLSvcAccount         = 'swisskrono\sqlsvc'
     SQLSvcPassword        = 'SomePass1'
-    AgtSvcAccount         = 'contoso\sqlsvc'
+    AgtSvcAccount         = 'swisskrono\sqlsvc'
     AgtSvcPassword        = 'SomePass1'
     AgtSvcStartupType     = 'Automatic'
     BrowserSvcStartupType = 'Automatic'
@@ -171,8 +172,8 @@ $roles += $SqlRole
 $PostInstallActivities = @()
 $PrepareDisksForS2D = Get-LabPostInstallationActivity -CustomRole PrepareDisksForS2D
 $ClusterCloudWitness = Get-LabPostInstallationActivity -CustomRole InstallClusterCloudWitness -Properties @{
-    StorageAccountName = $SecretFile.Lab3.witnessStorageAccountName
-    AccessKey          = $SecretFile.Lab3.witnessStorageAccountKey
+    #StorageAccountName = $SecretFile.Lab3.witnessStorageAccountName
+    #AccessKey          = $SecretFile.Lab3.witnessStorageAccountKey
 }
 $EnableS2D = Get-LabPostInstallationActivity -CustomRole EnableS2D
 $ClusterVolumes = Get-LabPostInstallationActivity -CustomRole InstallClusterVolumes -Properties @{
@@ -212,7 +213,7 @@ $CreateAG = Get-LabPostInstallationActivity -CustomRole CreateAlwaysOnAvailabili
     AGName               = 'LAB3SQLAG'
     AGDatabase           = 'AdventureWorksLT2022'
     AGIPAddress          = '192.168.3.201'
-    SQLEngineAccountName = 'contoso\sqlsvc'
+    SQLEngineAccountName = 'swisskrono\sqlsvc'
 }
 
 $PostInstallActivities += $PrepareDisksForS2D

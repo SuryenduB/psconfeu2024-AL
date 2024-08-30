@@ -9,12 +9,12 @@ $env:AUTOMATEDLAB_TELEMETRY_OPTIN = 'false'
 Enable-LabHostRemoting -Force
 
 # Windows
-New-LabSourcesFolder -DriveLetter E
+New-LabSourcesFolder -DriveLetter C
 
 # Set Some Settings
-Set-PSFConfig -Module AutomatedLab -Name LabAppDataRoot -Value "E:\AutomatedLab" -PassThru | Register-PSFConfig
-Set-PSFConfig -Module AutomatedLab -Name DiskDeploymentInProgressPath -Value 'E:\AutomatedLab\LabDiskDeploymentInProgress.txt' -PassThru | Register-PSFConfig
-Set-PSFConfig -Module AutomatedLab -Name ProductKeyFilePath -Value 'E:\AutomatedLab\Assets\ProductKeys.xml' -PassThru | Register-PSFConfig
-Set-PSFConfig -Module AutomatedLab -Name ProductKeyFilePathCustom -Value 'E:\AutomatedLab\Assets\ProductKeysCustom.xml' -PassThru | Register-PSFConfig
-Set-PSFConfig -Module AutomatedLab -Name SwitchDeploymentInProgressPath -Value 'E:\AutomatedLab\VSwitchDeploymentInProgress.txt' -PassThru | Register-PSFConfig
-Set-PSFConfig -Module AutomatedLab -Name VmPath -Value 'E:\AutomatedLab-Vms' -PassThru | Register-PSFConfig
+Set-PSFConfig -Module AutomatedLab -Name LabAppDataRoot -Value "C:\AutomatedLab" -PassThru | Register-PSFConfig
+Set-PSFConfig -Module AutomatedLab -Name DiskDeploymentInProgressPath -Value 'C:\AutomatedLab\LabDiskDeploymentInProgress.txt' -PassThru | Register-PSFConfig
+Set-PSFConfig -Module AutomatedLab -Name ProductKeyFilePath -Value 'C:\AutomatedLab\Assets\ProductKeys.xml' -PassThru | Register-PSFConfig
+Set-PSFConfig -Module AutomatedLab -Name ProductKeyFilePathCustom -Value 'C:\AutomatedLab\Assets\ProductKeysCustom.xml' -PassThru | Register-PSFConfig
+Set-PSFConfig -Module AutomatedLab -Name SwitchDeploymentInProgressPath -Value 'C:\AutomatedLab\VSwitchDeploymentInProgress.txt' -PassThru | Register-PSFConfig
+Set-PSFConfig -Module AutomatedLab -Name VmPath -Value 'C:\AutomatedLab-Vms' -PassThru | Register-PSFConfig

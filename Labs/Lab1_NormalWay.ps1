@@ -17,16 +17,16 @@
 #>
 
 $labName = 'LAB1'
-$SecretFile = Import-PowerShellDataFile -Path E:\GIT\psconfeu2024-AL\.secrets.psd1
-$witnessSAName = $SecretFile.Lab1.witnessStorageAccountName
-$witnessSAAccessKey = $SecretFile.Lab1.witnessStorageAccountKey
+#$SecretFile = Import-PowerShellDataFile -Path E:\GIT\psconfeu2024-AL\.secrets.psd1
+#$witnessSAName = $SecretFile.Lab1.witnessStorageAccountName
+#$witnessSAAccessKey = $SecretFile.Lab1.witnessStorageAccountKey
 
 New-LabDefinition -Name $labName -DefaultVirtualizationEngine HyperV
 
 $PSDefaultParameterValues = @{
     'Add-LabMachineDefinition:Network'         = 'NATSwitchLab1'
     'Add-LabMachineDefinition:ToolsPath'       = "$labSources\Tools"
-    'Add-LabMachineDefinition:OperatingSystem' = 'Windows Server 2022 Datacenter (Desktop Experience)'
+    'Add-LabMachineDefinition:OperatingSystem' = 'Windows Server 2025 Datacenter (Desktop Experience)'
     'Add-LabMachineDefinition:Memory'          = 2GB
     'Add-LabMachineDefinition:DomainName'      = 'contoso.com'
 }
@@ -48,7 +48,7 @@ $splat = @{
 $netAdapter = New-LabNetworkAdapterDefinition @splat
 $splat = @{
     Name            = 'LAB1DC'
-    OperatingSystem = 'Windows Server 2022 Datacenter'
+    OperatingSystem = 'Windows Server 2025 Datacenter'
     Processors      = 1
     Roles           = 'RootDC'
     NetworkAdapter  = $netAdapter
@@ -157,8 +157,8 @@ Invoke-LabCommand -ComputerName LAB1SQL1 -ActivityName 'Create Cluster' -ScriptB
 
 # Configure the cluster quorum as cloud witness
 Invoke-LabCommand -ComputerName LAB1SQL1 -ActivityName 'Configure Cluster Quorum' -ScriptBlock {
-    Set-ClusterQuorum -CloudWitness -AccountName $witnessSAName -AccessKey $witnessSAAccessKey
-} -PassThru -Variable (Get-Variable -Name witnessSAName), (Get-Variable -Name witnessSAAccessKey)
+    Set-ClusterQuorum -NodeMajority
+} 
 
 # Enable storage spaces direct
 Invoke-LabCommand -ComputerName LAB1SQL1 -ActivityName 'Enable Storage Spaces Direct' -ScriptBlock {
