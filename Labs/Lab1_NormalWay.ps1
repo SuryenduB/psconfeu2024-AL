@@ -27,8 +27,8 @@ $PSDefaultParameterValues = @{
     'Add-LabMachineDefinition:Network'         = 'NATSwitchLab1'
     'Add-LabMachineDefinition:ToolsPath'       = "$labSources\Tools"
     'Add-LabMachineDefinition:OperatingSystem' = 'Windows Server 2025 Datacenter (Desktop Experience)'
-    'Add-LabMachineDefinition:Memory'          = 2GB
-    'Add-LabMachineDefinition:DomainName'      = 'contoso.com'
+    'Add-LabMachineDefinition:Memory'          = 1GB
+    'Add-LabMachineDefinition:DomainName'      = 'swisskrono.com'
 }
 
 $splat = @{
@@ -37,6 +37,7 @@ $splat = @{
     AddressSpace     = '192.168.1.0/24'
 }
 Add-LabVirtualNetworkDefinition @splat
+Add-LabVirtualNetworkDefinition -Name 'Default Switch WiFi' -HyperVProperties @{ SwitchType = 'External'; AdapterName = 'Wi-Fi' }
 
 # Domain Controller
 $splat = @{
@@ -45,7 +46,12 @@ $splat = @{
     Ipv4Gateway    = '192.168.1.1'
     Ipv4DNSServers = '192.168.1.10', '168.63.129.16'
 }
-$netAdapter = New-LabNetworkAdapterDefinition @splat
+
+#Modify DC Net Adapter
+
+$netAdapter = @()
+$netAdapter += New-LabNetworkAdapterDefinition @splat
+$netAdapter += New-LabNetworkAdapterDefinition -VirtualSwitch 'Default Switch WiFi' -UseDhcp
 $splat = @{
     Name            = 'LAB1DC'
     OperatingSystem = 'Windows Server 2025 Datacenter'
@@ -56,6 +62,15 @@ $splat = @{
 }
 Add-LabMachineDefinition @splat
 
+
+#Routing Role
+$netAdapter = @()
+$netAdapter += New-LabNetworkAdapterDefinition -VirtualSwitch NATSwitchLab1
+$netAdapter += New-LabNetworkAdapterDefinition -VirtualSwitch 'Default Switch WiFi' -UseDhcp
+Add-LabMachineDefinition -Name Router  -Roles Routing -NetworkAdapter $netAdapter -DomainName swisskrono.com
+
+
+
 # SQL Server 1
 $splat = @{
     VirtualSwitch  = 'NATSwitchLab1'
@@ -63,7 +78,13 @@ $splat = @{
     Ipv4Gateway    = '192.168.1.1'
     Ipv4DNSServers = '192.168.1.10', '168.63.129.16'
 }
-$netAdapter = New-LabNetworkAdapterDefinition @splat
+#Modify SQL 1 Net Adapter
+
+$netAdapter = @()
+$netAdapter += New-LabNetworkAdapterDefinition @splat
+$netAdapter += New-LabNetworkAdapterDefinition -VirtualSwitch 'Default Switch WiFi' -UseDhcp
+
+
 Add-LabDiskDefinition -Name Lab1SQL1DataDrive1 -DiskSizeInGb 100
 Add-LabDiskDefinition -Name Lab1SQL1DataDrive2 -DiskSizeInGb 100
 $splat = @{
@@ -81,7 +102,12 @@ $splat = @{
     Ipv4Gateway    = '192.168.1.1'
     Ipv4DNSServers = '192.168.1.10', '168.63.129.16'
 }
-$netAdapter = New-LabNetworkAdapterDefinition @splat
+#Modify SQL 2 Net Adapter 
+
+$netAdapter = @()
+$netAdapter += New-LabNetworkAdapterDefinition @splat
+$netAdapter += New-LabNetworkAdapterDefinition -VirtualSwitch 'Default Switch WiFi' -UseDhcp
+#$netAdapter = New-LabNetworkAdapterDefinition @splat
 Add-LabDiskDefinition -Name Lab1SQL2DataDrive1 -DiskSizeInGb 100
 Add-LabDiskDefinition -Name Lab1SQL2DataDrive2 -DiskSizeInGb 100
 $splat = @{
@@ -94,6 +120,8 @@ Add-LabMachineDefinition @splat
 
 Install-Lab
 
+
+
 # Wait for the PSRepository to be registered
 Invoke-LabCommand -ComputerName LAB1SQL1, LAB1SQL2 -ActivityName 'Return Registered Repositories' -ScriptBlock {
     while ($null -eq (Get-PSRepository)) {
@@ -101,7 +129,7 @@ Invoke-LabCommand -ComputerName LAB1SQL1, LAB1SQL2 -ActivityName 'Return Registe
     }
 } -PassThru
 
-# Install PSResourceGet Module
+ #Install PSResourceGet Module
 Invoke-LabCommand -ComputerName LAB1SQL1, LAB1SQL2 -ActivityName 'Install PSResourceGet Module' -ScriptBlock {
     Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
     Install-Module -Name Microsoft.PowerShell.PSResourceGet -Force
@@ -130,18 +158,18 @@ Invoke-LabCommand -ComputerName LAB1SQL1, LAB1SQL2 -ActivityName 'Preparing Disk
 } -PassThru
 
 # Run Cluster Validation (Optional for lab environment)
-#Invoke-LabCommand -ComputerName LAB1SQL1, LAB1SQL2 -ActivityName 'Run Cluster Validation' -ScriptBlock {
-#Test-Cluster -Node LAB1SQL1, LAB1SQL2 -Include 'Storage Spaces Direct', 'Inventory', 'Network', 'System Configuration'
-#} -PassThru
+Invoke-LabCommand -ComputerName LAB1SQL1, LAB1SQL2 -ActivityName 'Run Cluster Validation' -ScriptBlock {
+Test-Cluster -Node LAB1SQL1, LAB1SQL2 -Include 'Storage Spaces Direct', 'Inventory', 'Network', 'System Configuration'
+} -PassThru
 
 # Create dns entry for Cluster
 Invoke-LabCommand -ComputerName LAB1DC -ActivityName 'Create DNS Entry for Cluster' -ScriptBlock {
-    Add-DnsServerResourceRecordA -Name LAB1SQLCL -ZoneName contoso.com -AllowUpdateAny -IPv4Address 192.168.1.200
+    Add-DnsServerResourceRecordA -Name LAB1SQLCL -ZoneName swisskrono.com -AllowUpdateAny -IPv4Address 192.168.1.200
 } -PassThru
 
 # Create dns entry for AlwaysOn Listener
 Invoke-LabCommand -ComputerName LAB1DC -ActivityName 'Create DNS Entry for AlwaysOn Listener' -ScriptBlock {
-    Add-DnsServerResourceRecordA -Name LAB1SQLAG -ZoneName contoso.com -AllowUpdateAny -IPv4Address 192.168.1.201
+    Add-DnsServerResourceRecordA -Name LAB1SQLAG -ZoneName swisskrono.com -AllowUpdateAny -IPv4Address 192.168.1.201
 } -PassThru
 
 # Create SQL Server Engine Account
@@ -201,7 +229,7 @@ Invoke-LabCommand -ComputerName LAB1SQL1 -ActivityName 'Create Folders and Share
 
 # Download SQL Server 2022 current Cumulative Update
 $splat = @{
-    Uri  = 'https://download.microsoft.com/download/9/6/8/96819b0c-c8fb-4b44-91b5-c97015bbda9f/SQLServer2022-KB5032679-x64.exe'
+    Uri  = 'https://download.microsoft.com/download/9/6/8/96819b0c-c8fb-4b44-91b5-c97015bbda9f/SQLServer2022-KB5038325-x64.exe'
     Path = "$labSources\SoftwarePackages\SQLServer2022-KB5032679-x64.exe"
 }
 Get-LabInternetFile @splat
@@ -259,9 +287,9 @@ $DriveLetter = $Info.DriveLetter
 # Install SQL Server 2022 on LAB1SQL1
 Invoke-LabCommand -ComputerName LAB1SQL1 -ActivityName 'Install SQL Server 2022' -Variable (Get-Variable -Name DriveLetter) -ScriptBlock {
 
-    $EngineCredential = New-Object System.Management.Automation.PSCredential ('contoso\SQLSvc', (ConvertTo-SecureString 'SomePass1' -AsPlainText -Force))
-    $AgentCredential = New-Object System.Management.Automation.PSCredential ('contoso\SQLSvc', (ConvertTo-SecureString 'SomePass1' -AsPlainText -Force))
-    $AdminCredential = New-Object System.Management.Automation.PSCredential ('contoso\Administrator', (ConvertTo-SecureString 'Somepass1' -AsPlainText -Force))
+    $EngineCredential = New-Object System.Management.Automation.PSCredential ('swisskrono\SQLSvc', (ConvertTo-SecureString 'SomePass1' -AsPlainText -Force))
+    $AgentCredential = New-Object System.Management.Automation.PSCredential ('swisskrono\SQLSvc', (ConvertTo-SecureString 'SomePass1' -AsPlainText -Force))
+    $AdminCredential = New-Object System.Management.Automation.PSCredential ('swisskrono\Administrator', (ConvertTo-SecureString 'Somepass1' -AsPlainText -Force))
 
     $config = @{
         BROWSERSVCSTARTUPTYPE = 'Automatic'
@@ -324,9 +352,9 @@ $DriveLetter = $Info.DriveLetter
 # Install SQL Server 2022 on LAB1SQL2
 Invoke-LabCommand -ComputerName LAB1SQL2 -ActivityName 'Install SQL Server 2022' -Variable (Get-Variable -Name DriveLetter) -ScriptBlock {
 
-    $EngineCredential = New-Object System.Management.Automation.PSCredential ('contoso\SQLSvc', (ConvertTo-SecureString 'SomePass1' -AsPlainText -Force))
-    $AgentCredential = New-Object System.Management.Automation.PSCredential ('contoso\SQLSvc', (ConvertTo-SecureString 'SomePass1' -AsPlainText -Force))
-    $AdminCredential = New-Object System.Management.Automation.PSCredential ('contoso\Administrator', (ConvertTo-SecureString 'Somepass1' -AsPlainText -Force))
+    $EngineCredential = New-Object System.Management.Automation.PSCredential ('swisskrono\SQLSvc', (ConvertTo-SecureString 'SomePass1' -AsPlainText -Force))
+    $AgentCredential = New-Object System.Management.Automation.PSCredential ('swisskrono\SQLSvc', (ConvertTo-SecureString 'SomePass1' -AsPlainText -Force))
+    $AdminCredential = New-Object System.Management.Automation.PSCredential ('swisskrono\Administrator', (ConvertTo-SecureString 'Somepass1' -AsPlainText -Force))
 
     $config = @{
         BROWSERSVCSTARTUPTYPE = 'Automatic'
@@ -405,8 +433,8 @@ Invoke-LabCommand -ComputerName LAB1SQL1 -ActivityName 'Setup AlwaysOn Availabil
         Port        = 5022
     }
     New-DbaEndpoint @Splat | Start-DbaEndpoint | Format-Table
-    New-DbaLogin -SqlInstance LAB1SQL1 -Login 'contoso\SQLSvc' | Format-Table
-    Invoke-DbaQuery -SqlInstance LAB1SQL1 -Query 'GRANT CONNECT ON ENDPOINT::hadr_endpoint TO [contoso\SQLSvc]'
+    New-DbaLogin -SqlInstance LAB1SQL1 -Login 'swisskrono\SQLSvc' | Format-Table
+    Invoke-DbaQuery -SqlInstance LAB1SQL1 -Query 'GRANT CONNECT ON ENDPOINT::hadr_endpoint TO [swisskrono\SQLSvc]'
 } -PassThru
 
 # Setup AlwaysOn Availability Group endpoint on LAB1SQL2
@@ -417,8 +445,8 @@ Invoke-LabCommand -ComputerName LAB1SQL2 -ActivityName 'Setup AlwaysOn Availabil
         Port        = 5022
     }
     New-DbaEndpoint @Splat | Start-DbaEndpoint | Format-Table
-    New-DbaLogin -SqlInstance LAB1SQL2 -Login 'contoso\SQLSvc' | Format-Table
-    Invoke-DbaQuery -SqlInstance LAB1SQL2 -Query 'GRANT CONNECT ON ENDPOINT::hadr_endpoint TO [contoso\SQLSvc]'
+    New-DbaLogin -SqlInstance LAB1SQL2 -Login 'swisskrono\SQLSvc' | Format-Table
+    Invoke-DbaQuery -SqlInstance LAB1SQL2 -Query 'GRANT CONNECT ON ENDPOINT::hadr_endpoint TO [swisskrono\SQLSvc]'
 } -PassThru
 
 # Backup database AdventureWorksLT2022 on LAB1SQL1 and restore on LAB1SQL2
@@ -456,4 +484,5 @@ Invoke-LabCommand -ComputerName LAB1SQL1 -ActivityName 'Create AlwaysOn Availabi
     $AG | Format-List *
 } -PassThru
 
+#>
 Show-LabDeploymentSummary -Detailed
